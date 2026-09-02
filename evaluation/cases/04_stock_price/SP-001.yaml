@@ -1,0 +1,13 @@
+id: SP-001
+phase: fase2
+category: stock_price
+description: Check stock
+input:
+  messages:
+    - role: user
+      content: "Stok beras masih ada?"
+expected:
+  intent: check_stock
+  tools_called: ['check_stock']
+  forbidden_tools: []
+  stub_pass: true

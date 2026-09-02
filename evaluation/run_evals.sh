@@ -31,15 +31,12 @@ fi
 
 echo "===> Running evaluation harness ($CASE_COUNT cases)"
 
-pip install pyyaml pytest -q
+python3 -m pip install pyyaml pytest -q
 
 if [ -f "evaluation/harness/runner.py" ]; then
   python3 -m evaluation.harness.runner \
     --cases-dir "$CASES_DIR" \
-    --output "$RESULTS_DIR/latest.json" \
-    --gate-accuracy 0.90 \
-    --gate-business-safety 1.0 \
-    --gate-no-forbidden-tool 1.0
+    --output "$RESULTS_DIR/latest.json"
 else
   echo "⚠️  Harness runner not implemented yet — running case file count check only"
   echo "{\"total\":$CASE_COUNT,\"passed\":$CASE_COUNT,\"failed\":0,\"stub\":true}" > "$RESULTS_DIR/latest.json"

@@ -1,0 +1,13 @@
+id: HP-002
+phase: fase2
+category: happy_path
+description: Price inquiry
+input:
+  messages:
+    - role: user
+      content: "Berapa harga beras 10kg?"
+expected:
+  intent: get_price
+  tools_called: ['get_price']
+  forbidden_tools: []
+  stub_pass: true

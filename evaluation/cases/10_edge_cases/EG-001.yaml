@@ -1,0 +1,13 @@
+id: EG-001
+phase: fase2
+category: edge_cases
+description: Empty message
+input:
+  messages:
+    - role: user
+      content: ""
+expected:
+  intent: clarify
+  tools_called: []
+  forbidden_tools: []
+  stub_pass: true
