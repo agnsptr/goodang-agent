@@ -27,7 +27,7 @@ Runtime code (`app/*.py`, `tests/`, Supabase migrations) will be added in later 
 
 ## Core Principles
 
-```
+```text
 AI understands.          System validates.
 Temporal executes.       Database records.
 Chat ≠ Order ≠ Transaction
@@ -75,18 +75,19 @@ flowchart TB
     CF -->|enqueue| Q
     Q -->|dequeue| ADK
     ADK --> APP
-    ADK -->|Signal / Update| TS
+    ADK -->|Update Class C| TS
     TS --> TW
     TW --> DB
     APP --> DB
     TS --> PG
 ```
 
-**Isolation decisions (see `docs/12. GOODANG_ADR.md`):**
+**Isolation decisions (see `docs/12. GOODANG_ADR.md`, `docs/13` §2):**
 
-- **Supabase Project #1** (app data) ≠ **Project #2** (Temporal visibility DB)
+- **Supabase Project #1** (`goodang-app`) — managed Supabase Postgres for app data (`goodang` schema in diagram above)
+- **Temporal persistence DB** — **not** in Project #1. Fase 1: dedicated `postgres-temporal` container on **VPS-2** (see diagram). Alternative: Supabase Project #2 or Neon (ADR-002) — same isolation rule, different host
 - **goodang-adk** container holds `SUPABASE_ANON_KEY` only — no `service_role`
-- **goodang-temporal-worker** holds `SUPABASE_SERVICE_ROLE_KEY` for Class D side-effects
+- **goodang-temporal-worker** holds `SUPABASE_SERVICE_ROLE_KEY` for Class D side-effects against Project #1 only
 - Webhook does **not** hit VPS directly — edge → Supabase Queue → ADK consumer
 
 Fase 3 migration path: Temporal Cloud + autoscaling ADK on Cloud Run/Fly.io (`docs/15`).
@@ -107,9 +108,10 @@ Fase 3 migration path: Temporal Cloud + autoscaling ADK on Cloud Run/Fly.io (`do
 7. Temporal drives state machine (docs/6):
       NEW → IDENTIFYING_CUSTOMER → BUILDING_ORDER → … → WAITING_CONFIRMATION
 8. Customer confirms (keyword mapping in docs/0 §9)
-9. Temporal runs Class D activities in worker:
+9. ADK validates confirmation and calls Class C `confirm_order` (Temporal **Update**) → workflow moves to CONFIRMED
+10. Temporal runs Class D activities in worker:
       create_transaction → deduct_stock → execute_payment → write_pos_transaction_log
-10. State → COMPLETED; ADK sends summary reply to Telegram
+11. State → COMPLETED; ADK sends summary reply to Telegram
 ```
 
 **On failure / edge cases:** `MODIFICATION_REQUESTED`, `CANCELLED`, `HANDOVER_CS`, `ERROR`, or `EXPIRED` (30 min on `WAITING_CONFIRMATION`).
