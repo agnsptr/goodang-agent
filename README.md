@@ -232,7 +232,7 @@ SOLO=1 bash scripts/setup-branch-protection.sh owner/goodang-agent
 ## Docker (Fase 1 template)
 
 ```bash
-cp docker/.env.example docker/.env   # when available — set secrets locally
+cp docker/.env.example docker/.env   # set secrets locally, never commit .env
 # VPS-1 (ADK stack)
 docker compose -f docker/docker-compose.fase1.yml --profile adk-stack up -d
 # VPS-2 (Temporal stack) — run on separate host (ADR-003)
