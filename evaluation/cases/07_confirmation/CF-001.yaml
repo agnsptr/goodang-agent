@@ -1,13 +1,17 @@
 id: CF-001
 phase: fase2
 category: confirmation
-description: Confirm keyword
+description: Confirm keyword in WAITING_CONFIRMATION
+preconditions:
+  workflow_state: WAITING_CONFIRMATION
 input:
   messages:
     - role: user
       content: "Ya setuju"
 expected:
   intent: confirm_order
-  tools_called: ['confirm_order']
+  tools_called:
+    - confirm_order
   forbidden_tools: []
+  workflow_state_after: CONFIRMED
   stub_pass: true

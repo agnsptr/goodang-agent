@@ -10,7 +10,7 @@
 
 ### In scope
 - 4 Class B tools (`create_draft_order`, `update_order_draft`, `add_order_item`, `remove_order_item`)
-- 4 Class C tools as **Temporal Updates** (`confirm_order`, `cancel_order`, `request_human_handover`, `start_order_workflow`)
+- 4 Class C tools: `start_order_workflow` (**StartWorkflow**) + `confirm_order`, `cancel_order`, `request_human_handover` (**Updates**)
 - Temporal workflow + activities (`app/temporal/`)
 - Telegram: Cloudflare Workers → Supabase Queue → ADK dequeue
 - Class D activities in **separate worker** container only
@@ -80,7 +80,7 @@ No reservation in Fase 3 MVP:
 2. `deduct_stock_activity` at transaction — may return `INSUFFICIENT_STOCK`
 3. Workflow returns to `BUILDING_ORDER`
 
-Opsi B (`RESERVING_STOCK` state) requires contract update — defer until production evidence.
+Opsi B (stock reservation with timed hold) requires contract update — defer until production evidence.
 
 ---
 

@@ -1,13 +1,16 @@
 CREATE TABLE goodang.payment (
   payment_id        TEXT PRIMARY KEY,
-  transaction_id    TEXT NOT NULL,
+  transaction_id    TEXT NOT NULL UNIQUE,
   member_id         TEXT NOT NULL,
   method_code       TEXT NOT NULL,
   amount            NUMERIC(15,2) NOT NULL,
   status            TEXT NOT NULL,
   idempotency_key   TEXT UNIQUE NOT NULL,
   created_at        TIMESTAMPTZ DEFAULT NOW(),
-  FOREIGN KEY (method_code) REFERENCES goodang.payment_method(method_code)
+  FOREIGN KEY (member_id) REFERENCES goodang.member(member_id),
+  FOREIGN KEY (method_code) REFERENCES goodang.payment_method(method_code),
+  CONSTRAINT payment_idempotency_key_format
+    CHECK (idempotency_key = 'GOODANG-PAY:' || transaction_id)
 );
 CREATE INDEX idx_payment_member ON goodang.payment(member_id, created_at DESC);
 CREATE INDEX idx_payment_status ON goodang.payment(status);

@@ -7,7 +7,8 @@ END;
 $$ LANGUAGE plpgsql;
 
 CREATE TABLE goodang.pos_transaction_log (
-  transaction_id    TEXT PRIMARY KEY,
+  id                BIGSERIAL PRIMARY KEY,
+  transaction_id    TEXT NOT NULL,
   transaction_date  TIMESTAMPTZ NOT NULL,
   outlet_code       TEXT NOT NULL,
   member_id         TEXT NOT NULL,
@@ -26,6 +27,7 @@ CREATE TABLE goodang.pos_transaction_log (
   created_at        TIMESTAMPTZ DEFAULT NOW(),
   immutable         BOOLEAN DEFAULT true
 );
+CREATE INDEX idx_pos_tl_transaction ON goodang.pos_transaction_log(transaction_id);
 CREATE INDEX idx_pos_tl_member ON goodang.pos_transaction_log(member_id, transaction_date DESC);
 CREATE INDEX idx_pos_tl_outlet ON goodang.pos_transaction_log(outlet_code, transaction_date DESC);
 CREATE INDEX idx_pos_tl_date ON goodang.pos_transaction_log(transaction_date DESC);

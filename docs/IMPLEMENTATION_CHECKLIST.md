@@ -8,7 +8,7 @@
 
 ## How to Use
 
-1. Pick phase doc: `docs/execution/FASE2_MVP.md` | `FASE3_ADOPSI.md` | `FASE4_AI_NATIVE.md`
+1. Pick phase doc: `docs/execution/FASE2_MVP.md` | `docs/execution/FASE3_ADOPSI.md` | `docs/execution/FASE4_AI_NATIVE.md`
 2. Complete items in order (dependencies noted)
 3. Run local gates before PR (see bottom)
 4. Update this checklist when items complete (`[x]`)
@@ -38,7 +38,7 @@
 | # | Deliverable | Files / paths | Gate |
 |:--|:--|:--|:--|
 | 3.1 | Class B draft tools (4) | `app/tools/order_tools.py` | draft CRUD tests |
-| 3.2 | Class C workflow commands (4) | `app/temporal/client.py` + Updates | mock Temporal tests |
+| 3.2 | Class C workflow commands (4) | `app/temporal/client.py` — Updates + StartWorkflow | mock Temporal tests |
 | 3.3 | Temporal workflow 19-state | `app/temporal/workflows/order_workflow.py` | workflow unit tests |
 | 3.4 | Activities A/B/C/D split | `app/temporal/activities/*.py` | Class D only in worker |
 | 3.5 | Telegram edge → queue → ADK | `app/telegram/*.py` + CF Worker (separate repo) | webhook integration test |
@@ -82,4 +82,4 @@ bash evaluation/run_evals.sh
 
 ## Contract Change Protocol
 
-Any new state/tool/error code → update `docs/0` first → sync mirrors → update `registry.yaml` / migrations → `contract:` commit.
+Any new state/tool/error code → update `docs/0` first (version bump in header) → run drift checks → sync mirrors → update `registry.yaml` / migrations → `contract:` commit.
