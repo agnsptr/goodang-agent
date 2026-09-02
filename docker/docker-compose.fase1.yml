@@ -32,6 +32,10 @@ networks:
 volumes:
   temporal_data:
     driver: local
+  caddy_data:
+    driver: local
+  caddy_config:
+    driver: local
 
 # =============================================================================
 # PROFILE: temporal-stack (VPS-2)
@@ -206,12 +210,3 @@ services:
       - "127.0.0.1:4318:4318"  # OTLP HTTP
     networks:
       - goodang-net
-
-# -----------------------------------------------------------------------------
-# VOLUMES untuk Caddy
-# -----------------------------------------------------------------------------
-volumes:
-  caddy_data:
-    driver: local
-  caddy_config:
-    driver: local

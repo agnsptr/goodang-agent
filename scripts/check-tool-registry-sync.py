@@ -117,7 +117,7 @@ def parse_registry():
         elif re.match(r"^class_d_forbidden_in_adk\s*:", stripped):
             current_section = "class_d_forbidden_in_adk"
             continue
-        elif stripped.startswith("version:") or stripped.startswith("#") or not stripped:
+        elif stripped.startswith(("version:", "#")) or not stripped:
             continue
 
         # Parse tool entry: "- name: <tool_name>" or "- <tool_name>" (plain)
