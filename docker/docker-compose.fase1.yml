@@ -1,0 +1,217 @@
+# =============================================================================
+# docker/docker-compose.fase1.yml
+# Goodang Fase 1 — Foundation Stack
+# =============================================================================
+# Template docker-compose untuk Fase 1 (MVP, <100 workflow/hari).
+#
+# Topology (lihat docs/13. GOODANG_INFRASTRUCTURE_SPEC.md):
+#   - VPS-1: ADK + App Layer (file ini, bagian "adk-stack")
+#   - VPS-2: Temporal server + worker + Postgres (file ini, bagian "temporal-stack")
+#   - Supabase: managed (Project #1 goodang-app + Project #2 goodang-temporal)
+#   - Cloudflare Workers: deploy terpisah (bukan docker)
+#
+# Cara pakai:
+#   1. Copy file ini ke VPS target
+#   2. Buat .env dari .env.example
+#   3. VPS-1: docker compose -f docker-compose.fase1.yml --profile adk-stack up -d
+#   4. VPS-2: docker compose -f docker-compose.fase1.yml --profile temporal-stack up -d
+#
+# JALANKAN KEDUA STACK DI VPS BERBEDA (ADR-003: isolasi container).
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# SHARED NETWORKS
+# -----------------------------------------------------------------------------
+networks:
+  goodang-net:
+    driver: bridge
+
+# -----------------------------------------------------------------------------
+# SHARED VOLUMES
+# -----------------------------------------------------------------------------
+volumes:
+  temporal_data:
+    driver: local
+
+# =============================================================================
+# PROFILE: temporal-stack (VPS-2)
+# =============================================================================
+# Jalankan: docker compose --profile temporal-stack up -d
+# =============================================================================
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # Postgres untuk Temporal (dedicated, isolated dari Supabase app DB)
+  # ---------------------------------------------------------------------------
+  postgres-temporal:
+    image: postgres:15-alpine
+    profiles: ["temporal-stack"]
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${TEMPORAL_DB_USER:-temporal}
+      POSTGRES_PASSWORD: ${TEMPORAL_DB_PASSWORD:?set in .env}
+      POSTGRES_DB: temporal
+    volumes:
+      - temporal_data:/var/lib/postgresql/data
+    networks:
+      - goodang-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${TEMPORAL_DB_USER:-temporal}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    # JANGAN expose port ke public — internal only
+
+  # ---------------------------------------------------------------------------
+  # Temporal Server (frontend + history + matching, single instance)
+  # ---------------------------------------------------------------------------
+  temporal-server:
+    image: temporalio/server:1.22.0
+    profiles: ["temporal-stack"]
+    restart: unless-stopped
+    depends_on:
+      postgres-temporal:
+        condition: service_healthy
+    environment:
+      DBPLUGIN: postgres12
+      DBADDR: postgres-temporal:5432
+      DBPORT: "5432"
+      DBNAME: temporal
+      DBUSER: ${TEMPORAL_DB_USER:-temporal}
+      DBPASSWORD: ${TEMPORAL_DB_PASSWORD:?set in .env}
+      LOG_LEVEL: info
+      DYNAMIC_CONFIG_FILE: /etc/temporal/dynamic_config.yaml
+    volumes:
+      - ./temporal/dynamic_config.yaml:/etc/temporal/dynamic_config.yaml:ro
+    ports:
+      - "127.0.0.1:7233:7233"  # gRPC — internal only (bind localhost)
+      - "127.0.0.1:8233:8233"  # UI — internal only, behind reverse proxy + auth
+    networks:
+      - goodang-net
+    healthcheck:
+      test: ["CMD", "tctl", "cluster", "health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ---------------------------------------------------------------------------
+  # Temporal Worker (Goodang activities, Class D)
+  # Pegang SUPABASE_SERVICE_ROLE_KEY — JANGAN share dengan ADK
+  # ---------------------------------------------------------------------------
+  goodang-temporal-worker:
+    image: goodang/temporal-worker:1.0.0
+    profiles: ["temporal-stack"]
+    restart: unless-stopped
+    depends_on:
+      temporal-server:
+        condition: service_healthy
+    environment:
+      TEMPORAL_ADDRESS: temporal-server:7233
+      TEMPORAL_NAMESPACE: ${TEMPORAL_NAMESPACE:-goodang}
+      TEMPORAL_TASK_QUEUE: goodang-activities
+      SUPABASE_URL: ${SUPABASE_URL:?set in .env}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:?set in .env}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:?set in .env}
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+      OTEL_SERVICE_NAME: goodang-temporal-worker
+    networks:
+      - goodang-net
+
+# =============================================================================
+# PROFILE: adk-stack (VPS-1)
+# =============================================================================
+# Jalankan: docker compose --profile adk-stack up -d
+# =============================================================================
+
+  # ---------------------------------------------------------------------------
+  # App Layer (FastAPI, tool implementation Class A/B/C)
+  # ---------------------------------------------------------------------------
+  goodang-app-layer:
+    image: goodang/app-layer:1.0.0
+    profiles: ["adk-stack"]
+    restart: unless-stopped
+    environment:
+      SUPABASE_URL: ${SUPABASE_URL:?set in .env}
+      SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:?set in .env}
+      # NO SERVICE_ROLE_KEY — App Layer pakai anon + RLS
+      TEMPORAL_ADDRESS: ${TEMPORAL_ADDRESS_REMOTE:?set in .env}
+      TEMPORAL_NAMESPACE: ${TEMPORAL_NAMESPACE:-goodang}
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+      OTEL_SERVICE_NAME: goodang-app-layer
+    ports:
+      - "127.0.0.1:8000:8000"  # internal only
+    networks:
+      - goodang-net
+
+  # ---------------------------------------------------------------------------
+  # ADK Agent (webhook consumer + LLM orchestration)
+  # Pegang SUPABASE_ANON_KEY only — NO SERVICE_ROLE_KEY
+  # ---------------------------------------------------------------------------
+  goodang-adk:
+    image: goodang/adk:1.0.0
+    profiles: ["adk-stack"]
+    restart: unless-stopped
+    depends_on:
+      - goodang-app-layer
+    environment:
+      ADK_MODEL_ID: ${ADK_MODEL_ID:-gemini-1.5-pro}
+      ADK_PROMPT_VERSION: ${ADK_PROMPT_VERSION:-v1.0.0}
+      ADK_AGENT_NAME: goodang-cs
+      SUPABASE_URL: ${SUPABASE_URL:?set in .env}
+      SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:?set in .env}
+      # NO SUPABASE_SERVICE_ROLE_KEY — ADK tidak boleh pegang service_role
+      TEMPORAL_ADDRESS: ${TEMPORAL_ADDRESS_REMOTE:?set in .env}
+      TEMPORAL_NAMESPACE: ${TEMPORAL_NAMESPACE:-goodang}
+      TEMPORAL_TASK_QUEUE: adk-commands
+      APP_LAYER_URL: http://goodang-app-layer:8000
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+      OTEL_SERVICE_NAME: goodang-adk
+    ports:
+      - "127.0.0.1:8080:8080"  # internal only, behind Caddy
+    networks:
+      - goodang-net
+
+  # ---------------------------------------------------------------------------
+  # Caddy reverse proxy (auto TLS, expose 443 untuk webhook)
+  # ---------------------------------------------------------------------------
+  caddy:
+    image: caddy:2-alpine
+    profiles: ["adk-stack"]
+    restart: unless-stopped
+    depends_on:
+      - goodang-adk
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - goodang-net
+
+# =============================================================================
+# PROFILE: observability (opsional, Fase 1 bisa pakai managed Grafana Cloud)
+# =============================================================================
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.95.0
+    profiles: ["observability"]
+    restart: unless-stopped
+    volumes:
+      - ./otel/otel-collector-config.yaml:/etc/otelcol/config.yaml:ro
+    ports:
+      - "127.0.0.1:4317:4317"  # OTLP gRPC
+      - "127.0.0.1:4318:4318"  # OTLP HTTP
+    networks:
+      - goodang-net
+
+# -----------------------------------------------------------------------------
+# VOLUMES untuk Caddy
+# -----------------------------------------------------------------------------
+volumes:
+  caddy_data:
+    driver: local
+  caddy_config:
+    driver: local

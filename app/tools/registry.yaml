@@ -1,0 +1,123 @@
+# GOODANG ADK Tool Registry
+#
+# Single declarative source untuk tool yang didaftarkan ke ADK agent.
+# Sync wajib dengan docs/0. GOODANG_CONTRACT.md §3 (Canonical Tool Names).
+# CI check: scripts/check-tool-registry-sync.py
+#
+# Aturan:
+# - Class D tools (create_transaction, deduct_stock, execute_payment,
+#   write_pos_transaction_log) TIDAK BOLEH ada di registry ini.
+#   Mereka hanya dipanggil dari Temporal worker (goodang-temporal-worker).
+# - Class C workflow command tools (start_order_workflow, confirm_order,
+#   cancel_order, request_human_handover) didaftarkan sebagai tool ADK
+#   yang mengirim Signal/Update ke Temporal workflow.
+# - Tambah tool baru: update docs/0 §3 dulu, lalu file ini, lalu code.
+
+version: "1.0"
+
+# Class A — Read Tools (13 tools)
+# Diakses langsung oleh ADK (LLM) untuk membaca data.
+class_a:
+  - name: identify_customer
+    description: Identifikasi customer berdasarkan Telegram identity atau nama.
+    activity: lookup_customer_activity
+
+  - name: get_customer
+    description: Ambil detail customer by member_id.
+    activity: null  # direct ADK, no activity wrapper
+
+  - name: search_product
+    description: Cari produk by nama (fuzzy match).
+    activity: search_product_activity
+
+  - name: get_product
+    description: Ambil detail produk by sku_code.
+    activity: get_product_activity
+
+  - name: get_price
+    description: Ambil harga berlaku by sku_code + outlet_code.
+    activity: get_price_activity
+
+  - name: check_stock
+    description: Cek ketersediaan stock by sku_code + outlet_code + qty.
+    activity: check_stock_activity
+
+  - name: get_plafon
+    description: Ambil plafon/payment_limit member.
+    activity: null  # direct ADK
+
+  - name: check_payment
+    description: Validasi payment method + limit untuk order.
+    activity: check_payment_activity
+
+  - name: get_payment_status
+    description: Ambil status payment by transaction_id.
+    activity: get_payment_status_activity
+
+  - name: get_order
+    description: Ambil detail order by order_id.
+    activity: null  # direct ADK
+
+  - name: get_order_history
+    description: Ambil riwayat order member.
+    activity: null  # direct ADK
+
+  - name: get_order_status
+    description: Ambil status order terkini (query Temporal workflow).
+    activity: null  # direct ADK, query Temporal
+
+  - name: get_order_draft
+    description: Ambil draft order aktif by order_id atau chat_id.
+    activity: get_order_draft_activity
+
+# Class B — Draft Mutation Tools (4 tools)
+# Modifikasi draft order. Idempotent via version.
+class_b:
+  - name: create_draft_order
+    description: Buat draft order baru.
+    activity: create_draft_order_activity
+
+  - name: update_order_draft
+    description: Update draft order (add/remove item, ubah qty/payment).
+    activity: update_order_draft_activity
+
+  - name: add_order_item
+    description: Tambah item ke draft order (composite via update_order_draft).
+    activity: update_order_draft_activity  # composite
+
+  - name: remove_order_item
+    description: Hapus item dari draft order (composite via update_order_draft).
+    activity: update_order_draft_activity  # composite
+
+# Class C — Workflow Command Tools (4 tools)
+# Kirim Signal/Update ke Temporal workflow. ADK punya tool ini.
+class_c:
+  - name: start_order_workflow
+    description: Start Temporal workflow untuk order baru.
+    temporal_op: start_workflow
+    workflow_type: OrderWorkflow
+
+  - name: confirm_order
+    description: Konfirmasi order (kirim Update ke workflow).
+    temporal_op: update
+    update_handler: confirm_order
+
+  - name: cancel_order
+    description: Batalkan order (kirim Update ke workflow).
+    temporal_op: update
+    update_handler: cancel_order
+
+  - name: request_human_handover
+    description: Minta handover ke human CS (kirim Update ke workflow).
+    temporal_op: update
+    update_handler: request_human_handover
+
+# Class D — Final Mutation (TIDAK BOLEH di ADK registry)
+# Hanya dipanggil dari Temporal worker sebagai activity.
+# Didaftar di sini HANYA untuk validasi CI (check-tool-registry-sync.py
+# akan memastikan tidak ada tool Class D yang terdaftar di class_a/b/c).
+class_d_forbidden_in_adk:
+  - create_transaction
+  - deduct_stock
+  - execute_payment
+  - write_pos_transaction_log

@@ -11,6 +11,8 @@
 **Version:** 1.0  
 **Status:** Development Baseline
 
+> **Canonical Contract:** Nama state, tool, event, error code, confirmation keyword, dan schema field didefinisikan kanonik di `docs/0. GOODANG_CONTRACT.md` (Single Source of Truth). Dokumen ini adalah SoT untuk **agent prompt & instruction layer**. Jika ada konflik nama, `docs/0` menang.
+
 ---
 
 # 1. Purpose
@@ -1041,7 +1043,7 @@ Example:
   "member_name": "Imam Nurhadi",
   "order_id": "DRAFT-001",
   "workflow_state": "WAITING_CONFIRMATION",
-  "pending_action": "CUSTOMER_CONFIRMATION",
+  "pending_action": "CUSTOMER_CONFIRM",
   "verified_total": 158000
 }
 ```

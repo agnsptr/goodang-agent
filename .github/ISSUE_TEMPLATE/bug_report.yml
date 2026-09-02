@@ -1,0 +1,59 @@
+---
+name: Bug Report
+about: Laporkan bug di Goodang agent
+title: "[BUG] "
+labels: ["bug", "triage"]
+assignees:
+  - ""
+---
+
+## Ringkasan Bug
+
+<!-- Deskripsi singkat bug -->
+
+## Severity
+
+- [ ] P0 — Production down / data loss / security
+- [ ] P1 — Fitur utama rusak, ada workaround
+- [ ] P2 — Minor, cosmetic, edge case
+
+## Environment
+
+- Environment: [ ] Production [ ] Staging [ ] Local
+- Fase: [ ] Fase 1 [ ] Fase 2 [ ] Fase 3 [ ] Fase 4
+- Komponen: [ ] ADK [ ] Temporal [ ] Supabase [ ] Telegram [ ] App Layer [ ] Docker
+
+## Langkah Reproduksi
+
+1.
+2.
+3.
+
+## Expected Behavior
+
+<!-- Yang seharusnya terjadi -->
+
+## Actual Behavior
+
+<!-- Yang sebenarnya terjadi -->
+
+## Evidence
+
+<!-- Screenshot, log, trace ID, workflow ID -->
+
+## Impact
+
+<!-- Berapa user/order terdampak, frekuensi, business impact -->
+
+## Saran Fix (opsional)
+
+<!-- Kalau ada ide -->
+
+## CodeRabbit Rule (wajib setelah fix)
+
+Setelah fix, buat aturan pencegahan di `docs/rules/bug-[slug].md` (WI-ENT-DEV-003):
+
+- [ ] Aturan P0/P1 dibuat
+- [ ] Severity di-set
+- [ ] Do/Don't + contoh SALAH/BENAR
+- [ ] Tidak ada secret

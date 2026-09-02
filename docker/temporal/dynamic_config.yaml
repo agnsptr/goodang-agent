@@ -1,0 +1,24 @@
+# docker/temporal/dynamic_config.yaml
+# Temporal dynamic config untuk Fase 1 (single instance, conservative limits)
+# Lihat docs/15. GOODANG_TEMPORAL_DEPLOYMENT_SPEC.md §3.2
+
+# Matching service
+matching.numTaskqueueReadPartitions: 1
+matching.numTaskqueueWritePartitions: 1
+
+# History service
+frontend.historySizeLimit: 50000
+frontend.historySizeWarn: 40000
+
+# Retry policy (sesuai docs/0 §11.1)
+worker.RetryPolicyMaxAttempts: 10
+worker.RetryPolicyInitialInterval: 2s
+worker.RetryPolicyMaximumInterval: 30s
+worker.RetryPolicyBackoffCoefficient: 2
+
+# Activity timeout (sesuai docs/0 §11.2)
+system.WorkflowTaskTimeout: 30s
+
+# Fase 1: matikan advanced visibility (Elasticsearch)
+# Fase 3: enable saat migrasi ke Temporal Cloud
+system.EnableAdvancedVisibilityInReadOnly: false

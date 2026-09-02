@@ -1,0 +1,30 @@
+# docker/caddy/Caddyfile
+# Reverse proxy untuk goodang-adk (webhook endpoint)
+# Auto TLS via Let's Encrypt (Caddy default)
+#
+# Domain: ganti goodang-webhook.example.com dengan domain aktual.
+# Telegram webhook URL: https://gudang-webhook.example.com/webhook/telegram
+
+goodang-webhook.example.com {
+    # Webhook endpoint — proxy ke goodang-adk container
+    handle /webhook/telegram {
+        reverse_proxy goodang-adk:8080
+    }
+
+    # Health check
+    handle /health {
+        reverse_proxy goodang-adk:8080
+    }
+
+    # Default: 404 (jangan expose endpoint lain)
+    respond 404
+
+    # Logging
+    log {
+        output stdout
+        format json
+    }
+
+    # Rate limiting (basic, via Caddy)
+    # Untuk advanced rate limit, pakai Cloudflare Workers (edge layer)
+}

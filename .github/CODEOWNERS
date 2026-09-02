@@ -1,0 +1,56 @@
+# =============================================================================
+# CODEOWNERS — Goodang Autonomous CS Agent
+# =============================================================================
+# Sesuai SOP-ENT-DEV-002 §5.6 (Library Guardian) & WI-ENT-DEV-002 (branch protection).
+#
+# Aturan:
+# - Guardian wajib review PR yang menyentuh area di bawah ini.
+# - Tidak ada self-merge (branch protection enforce).
+# - CodeRabbit (AI) memberi pre-review, Guardian yang approve/merge.
+#
+# Ganti @goodang/guardians dengan GitHub team slug aktual.
+# =============================================================================
+
+# Default: semua file → Library Guardian team
+*                           @goodang/guardians
+
+# Kontrak SoT — wajib review Guardian + Tech Lead
+/docs/0.%20GOODANG_CONTRACT.md          @goodang/guardians @goodang/tech-leads
+/scripts/check-contract-drift.sh        @goodang/guardians @goodang/tech-leads
+/scripts/check-tool-registry-sync.py    @goodang/guardians @goodang/tech-leads
+/app/tools/registry.yaml                @goodang/guardians @goodang/tech-leads
+
+# ADR & arsitektur — Tech Lead wajib review
+/docs/12.%20GOODANG_ADR.md              @goodang/tech-leads
+/docs/13.%20GOODANG_INFRASTRUCTURE_SPEC.md  @goodang/tech-leads @goodang/devops
+/docs/15.%20GOODANG_TEMPORAL_DEPLOYMENT_SPEC.md  @goodang/tech-leads @goodang/devops
+
+# Supabase schema & RLS — DBA/Guardian wajib review
+/docs/14.%20GOODANG_SUPABASE_SCHEMA_SPEC.md   @goodang/guardians @goodang/dbas
+
+# CI & branch protection — DevOps wajib review
+/.github/workflows/                    @goodang/devops @goodang/guardians
+/.coderabbit.yaml                      @goodang/devops @goodang/guardians
+/scripts/setup-branch-protection.sh    @goodang/devops @goodang/guardians
+
+# Docker & infra — DevOps wajib review
+/docker/                               @goodang/devops
+
+# Temporal workflow — Tech Lead + Temporal specialist
+/app/temporal/                         @goodang/tech-leads @goodang/temporal
+
+# ADK agent & prompt — Tech Lead + AI specialist
+/app/agents/                           @goodang/tech-leads @goodang/ai
+/docs/GOODANG_ADK_PROMPT_SPEC.md       @goodang/tech-leads @goodang/ai
+
+# Tools — Guardian wajib review (Class D isolation)
+/app/tools/                            @goodang/guardians
+
+# Telegram integration — Tech Lead
+/app/telegram/                         @goodang/tech-leads
+
+# Schemas — DBA + Guardian
+/app/schemas/                          @goodang/guardians @goodang/dbas
+
+# CodeRabbit rules knowledge base — Guardian + Tech Lead
+/docs/rules/                           @goodang/guardians @goodang/tech-leads

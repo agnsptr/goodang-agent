@@ -1,0 +1,62 @@
+name: Evaluation Harness
+
+# =============================================================================
+# eval.yml — Goodang Agent Evaluation (Fase 2+)
+# =============================================================================
+# Fase 1: stub pass (no cases yet).
+# Fase 2+: wajib lulus gate accuracy ≥ 90%, business safety 100%.
+#
+# Acuan: docs/16. GOODANG_EVALUATION_HARNESS_SPEC.md
+# =============================================================================
+
+on:
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'app/agents/**'
+      - 'app/tools/**'
+      - 'evaluation/**'
+      - 'docs/GOODANG_ADK_PROMPT_SPEC.md'
+      - 'docs/8. GOODANG_AGENT_EVALUATION.md'
+  push:
+    branches: [main, develop]
+    paths:
+      - 'app/agents/**'
+      - 'evaluation/**'
+
+permissions:
+  contents: read
+
+jobs:
+  eval-harness:
+    name: Evaluation Harness
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Run evaluation harness
+        run: bash evaluation/run_evals.sh
+
+      - name: Upload eval results
+        if: always() && hashFiles('evaluation/results/latest.json') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-results
+          path: evaluation/results/
+
+      - name: Comment on PR (if failed)
+        if: failure() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              ...context.repo,
+              issue_number: context.payload.pull_request.number,
+              body: '❌ **Evaluation harness gagal.** Lihat artifact `eval-results` dan `docs/16. GOODANG_EVALUATION_HARNESS_SPEC.md`.'
+            })

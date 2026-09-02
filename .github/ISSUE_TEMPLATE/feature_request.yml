@@ -1,0 +1,49 @@
+---
+name: Feature Request
+about: Usulkan fitur baru untuk Goodang agent
+title: "[FEATURE] "
+labels: ["feature", "triage"]
+assignees:
+  - ""
+---
+
+## Ringkasan Fitur
+
+<!-- Fitur apa yang diinginkan -->
+
+## Motivasi
+
+<!-- Kenapa fitur ini dibutuhkan, masalah apa yang diselesaikan -->
+
+## Use Case
+
+<!-- Skenario penggunaan, siapa yang pakai, kapan -->
+
+## Proposal Solusi
+
+<!-- Bagaimana seharusnya fitur ini bekerja -->
+
+## Alternatif yang Dipertimbangkan
+
+<!-- Opsi lain, dan kenapa tidak dipilih -->
+
+## Impact ke Kontrak
+
+- [ ] Tambah state baru di `docs/0` §2
+- [ ] Tambah tool baru di `docs/0` §3 + `app/tools/registry.yaml`
+- [ ] Tambah activity baru di `docs/0` §4
+- [ ] Tambah error code di `docs/0` §7
+- [ ] Tambah ADR baru di `docs/12`
+- [ ] Tidak ada impact ke kontrak
+
+## Fase Target
+
+- [ ] Fase 1 — Foundation
+- [ ] Fase 2 — Ekstraksi
+- [ ] Fase 3 — Adopsi
+- [ ] Fase 4 — AI Native
+
+## Referensi
+
+- Dokumen terkait: <!-- docs/N. GOODANG_XXX.md -->
+- ADR terkait: <!-- docs/12. GOODANG_ADR.md#ADR-XXX -->

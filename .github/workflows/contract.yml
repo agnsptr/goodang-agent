@@ -1,0 +1,73 @@
+name: Contract Drift Check
+
+on:
+  pull_request:
+    paths:
+      - 'docs/**'
+      - 'app/**/*.md'
+      - 'app/tools/registry.yaml'
+      - 'knowledge/**/*.md'
+      - 'evaluation/**/*.md'
+      - 'scripts/check-contract-drift.sh'
+      - 'scripts/check-tool-registry-sync.py'
+      - 'scripts/check-schema-sync.py'
+      - 'docs/14. GOODANG_SUPABASE_SCHEMA_SPEC.md'
+      - 'supabase/migrations/**'
+      - '.github/workflows/contract.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'docs/**'
+      - 'app/**/*.md'
+      - 'app/tools/registry.yaml'
+      - 'knowledge/**/*.md'
+      - 'evaluation/**/*.md'
+      - 'scripts/check-contract-drift.sh'
+      - 'scripts/check-tool-registry-sync.py'
+      - 'scripts/check-schema-sync.py'
+      - 'docs/14. GOODANG_SUPABASE_SCHEMA_SPEC.md'
+      - 'supabase/migrations/**'
+
+permissions:
+  contents: read
+
+jobs:
+  contract-drift:
+    name: Contract Drift Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify docs/0. GOODANG_CONTRACT.md exists
+        run: |
+          if [ ! -f "docs/0. GOODANG_CONTRACT.md" ]; then
+            echo "✗ Missing docs/0. GOODANG_CONTRACT.md (single source of truth)"
+            exit 1
+          fi
+          echo "✓ docs/0. GOODANG_CONTRACT.md found"
+
+      - name: Run contract drift check
+        run: bash scripts/check-contract-drift.sh
+
+      - name: Run tool registry sync check
+        run: python3 scripts/check-tool-registry-sync.py
+
+      - name: Run schema sync check
+        run: python3 scripts/check-schema-sync.py
+
+      - name: Comment on PR (if failed)
+        if: failure() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              ...context.repo,
+              issue_number: context.payload.pull_request.number,
+              body: '❌ **Contract Drift Check gagal.** Lihat log workflow untuk detail. ' +
+                    'Setiap perubahan pada nama state/tool/activity/error code wajib update `docs/0. GOODANG_CONTRACT.md` terlebih dahulu. ' +
+                    'Jika menambah/mengubah tool, update `docs/0` §3 + `app/tools/registry.yaml`. ' +
+                    'Lihat `docs/0` §13 Change Management.'
+            })

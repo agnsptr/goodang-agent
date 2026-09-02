@@ -1,0 +1,150 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+#
+# .coderabbit.yaml — Goodang Autonomous CS Agent
+# Adaptasi dari template ENTIGI (docs/development-code-review-pipeline/coderabbit/coderabbit.yaml)
+# untuk stack Python + Google ADK + Temporal + Supabase.
+#
+# Acuan:
+#   - SOP-ENT-DEV-004 (AI Code Review & PR Guardrail)
+#   - WI-ENT-DEV-003 (Menulis Aturan Bug untuk CodeRabbit)
+#   - BA-ENT-DEV-004 (AI-Powered Code Review & PR Guardrail)
+#   - docs/17. GOODANG_CI_BRANCH_PROTECTION_SPEC.md
+#
+# CodeRabbit = AI pre-review (kontekstual).
+# GitHub Actions = hard gate deterministik (contract drift, tool registry, ruff, mypy, bandit, pytest).
+# Library Guardian = review final & merge decision.
+# CodeRabbit TIDAK menggantikan Guardian dan TIDAK menggantikan hard gate.
+
+language: "en-US"
+
+reviews:
+  profile: "assertive"
+  request_changes_workflow: true
+  high_level_summary: true
+  poem: false
+
+  auto_review:
+    enabled: true
+    drafts: false
+
+  instructions: |
+    Enforce Goodang canonical contract (docs/0. GOODANG_CONTRACT.md).
+    Knowledge Base is docs/rules/ in THIS repository only.
+
+    P0 — Request changes immediately:
+    - Class D tools (create_transaction, deduct_stock, execute_payment,
+      write_pos_transaction_log) called from ADK layer or registered in
+      app/tools/registry.yaml class_a/class_b/class_c. They belong ONLY
+      in goodang-temporal-worker (docs/0 §3.4, ADR-003).
+    - SUPABASE_SERVICE_ROLE_KEY used in goodang-adk or app-layer container
+      (ADR-003). service_role only in goodang-temporal-worker.
+    - Direct DB mutation from ADK to POS_TRANSACTION_LOG
+      (docs/0 §10.4 — must go via Temporal → Transaction Service).
+    - Ghost states used as state name: WAITING_CUSTOMER, CUSTOMER_CONFIRMATION,
+      VALIDATION (docs/0 §2.4 — DILARANG).
+    - Forbidden tool names: lookup_customer, create_draft, get_draft,
+      update_draft, update_draft_order, add_item, remove_item, cancel_draft
+      (docs/0 §3.5).
+    - Forbidden error codes: RESOLVED, VALID, UNAVAILABLE, HANDOVER without
+      prefix/suffix (docs/0 §7.13).
+    - Secrets in code: SUPABASE_SERVICE_ROLE_KEY, TELEGRAM_BOT_TOKEN,
+      ADK_MODEL_ID API keys, Temporal mTLS keys, DB passwords.
+    - time.sleep / asyncio.sleep in Temporal workflow code (must use
+      workflow.execute_timer — docs/15 §5).
+    - UPDATE or DELETE on pos_transaction_log table (must be append-only,
+      docs/14 §7, ADR-005).
+    - Prompt injection vectors in ADK prompt (docs/9 §security).
+    - Customer PII (member_name, phone, chat_id) logged in plaintext
+      (must be masked — docs/13 §6.4).
+
+    P1 — Comment, do not block:
+    - Activity name missing _activity suffix (docs/0 §4).
+    - Missing idempotency key on side-effect activity (docs/0 §8).
+    - Missing RetryPolicy on activity (docs/0 §11.1).
+    - Missing non-retryable flag on business errors (docs/0 §11.4).
+    - Hardcoded model ID instead of env var ADK_MODEL_ID.
+    - Missing OTel span on activity or tool call (ADR-009).
+
+    P2 — Suggestion:
+    - Missing docstring on public function.
+    - Inconsistent error code naming (should be UPPER_SNAKE_CASE).
+    - Missing test case for edge condition.
+
+    Do NOT:
+    - Ask for credentials or secrets in comments.
+    - Repeat regex hits already caught by ruff/bandit.
+    - Treat docs/ (specifications) as runtime code.
+    - Treat docs/rules/ as application runtime code (they are review rules).
+    - Suggest changes that violate docs/0 canonical contract — refer
+      developer to update docs/0 first (docs/0 §13 Change Management).
+
+  path_instructions:
+    - path: "docs/rules/**"
+      instructions: |
+        Review rule docs for Do/Don't, severity (P0/P1/P2), and absence of
+        secrets. Do not treat these files as application runtime code.
+        Format: docs/rules/bug-[slug].md (WI-ENT-DEV-003).
+
+    - path: "app/agents/**"
+      instructions: |
+        Apply docs/rules/*.md. Flag: Class D tool usage, missing tool
+        allowlist, prompt injection vectors, hardcoded prompts (should
+        load by version from docs/GOODANG_ADK_PROMPT_SPEC.md).
+
+    - path: "app/tools/**"
+      instructions: |
+        Verify tool names match docs/0 §3 and app/tools/registry.yaml.
+        Flag forbidden names (docs/0 §3.5). Flag Class D tools registered
+        in ADK (only allowed in Temporal worker).
+
+    - path: "app/temporal/**"
+      instructions: |
+        Verify activity names use _activity suffix (docs/0 §4). Verify
+        RetryPolicy set. Flag time.sleep in workflow code. Verify
+        Signal vs Update usage (docs/15 §4 — Class C commands = Update,
+        customer events = Signal).
+
+    - path: "app/schemas/**"
+      instructions: |
+        Verify schema fields match docs/0 §10 and docs/14. Flag missing
+        idempotency key on side-effect tables. Flag UPDATE/DELETE permission
+        on pos_transaction_log.
+
+    - path: "app/telegram/**"
+      instructions: |
+        Verify webhook secret validation (constant-time compare). Flag
+        missing rate limit. Flag PII in logs.
+
+    - path: "app/integrations/**"
+      instructions: |
+        Flag hardcoded credentials. Verify Supabase client uses anon key
+        (not service_role) in ADK layer.
+
+    - path: "scripts/**"
+      instructions: |
+        Verify CI scripts (check-contract-drift.sh, check-tool-registry-sync.py)
+        are idempotent and exit non-zero on drift. Do not weaken checks.
+
+    - path: "docker/**"
+      instructions: |
+        Flag exposed ports that should be internal-only (Temporal gRPC 7233,
+        UI 8233, Postgres 5432). Flag service_role key in ADK container env.
+        Flag missing healthcheck.
+
+    - path: "docs/**"
+      instructions: |
+        Documentation only — do not treat as runtime code. Verify
+        references to docs/0 are consistent. Flag ghost states or
+        forbidden names in spec docs (should reference docs/0 instead).
+
+knowledge_base:
+  code_guidelines:
+    enabled: true
+    filePatterns:
+      - "docs/rules/**/*.md"
+      - files: "docs/rules/**/*.md"
+        applyTo: "**/*.py"
+      - files:
+          - "docs/0. GOODANG_CONTRACT.md"
+          - "docs/12. GOODANG_ADR.md"
+        applyTo: "**/*.py"
