@@ -217,8 +217,8 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install pytest
-        run: pip install pytest -q
+      - name: Install project + pytest
+        run: pip install -e ".[dev]" -q
 
       - name: Run pytest
         run: |

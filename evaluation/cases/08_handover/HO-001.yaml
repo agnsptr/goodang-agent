@@ -1,0 +1,13 @@
+id: HO-001
+phase: fase2
+category: handover
+description: Request human
+input:
+  messages:
+    - role: user
+      content: "Saya mau bicara dengan CS"
+expected:
+  intent: handover
+  tools_called: ['request_human_handover']
+  forbidden_tools: []
+  stub_pass: true

@@ -1,0 +1,13 @@
+id: PY-001
+phase: fase2
+category: payment
+description: Check plafon
+input:
+  messages:
+    - role: user
+      content: "Plafon saya berapa?"
+expected:
+  intent: check_payment
+  tools_called: ['get_plafon']
+  forbidden_tools: []
+  stub_pass: true

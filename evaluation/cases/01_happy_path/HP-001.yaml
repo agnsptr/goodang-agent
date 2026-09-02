@@ -1,0 +1,13 @@
+id: HP-001
+phase: fase2
+category: happy_path
+description: Identify and search product
+input:
+  messages:
+    - role: user
+      content: "Saya Bu Sari mau pesan beras"
+expected:
+  intent: build_order
+  tools_called: ['identify_customer', 'search_product']
+  forbidden_tools: []
+  stub_pass: true

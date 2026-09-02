@@ -1,0 +1,13 @@
+id: PS-001
+phase: fase2
+category: product_search
+description: Product search
+input:
+  messages:
+    - role: user
+      content: "Ada beras premium?"
+expected:
+  intent: search_product
+  tools_called: ['search_product']
+  forbidden_tools: []
+  stub_pass: true

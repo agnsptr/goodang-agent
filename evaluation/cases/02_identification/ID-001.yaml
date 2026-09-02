@@ -1,0 +1,13 @@
+id: ID-001
+phase: fase2
+category: identification
+description: Unknown customer
+input:
+  messages:
+    - role: user
+      content: "Halo saya mau pesan"
+expected:
+  intent: identify_customer
+  tools_called: ['identify_customer']
+  forbidden_tools: []
+  stub_pass: true
