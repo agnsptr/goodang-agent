@@ -17,6 +17,13 @@
 #
 # Dry-run (preview tanpa apply):
 #   DRY_RUN=1 bash scripts/setup-branch-protection.sh
+#
+# Solo maintainer (personal repo, tanpa tim Guardian):
+#   SOLO=1 bash scripts/setup-branch-protection.sh owner/repo
+#   → CI checks tetap wajib; code owner review OFF; approving count 0
+#
+# Catatan GitHub Free: branch protection pada private repo butuh GitHub Pro.
+#   Alternatif: buat repo public, atau upgrade ke Pro.
 # =============================================================================
 set -euo pipefail
 
@@ -39,10 +46,23 @@ fi
 
 BRANCH="${BRANCH:-main}"
 DRY_RUN="${DRY_RUN:-0}"
+SOLO="${SOLO:-0}"
+
+# Review policy: org (default) vs solo maintainer
+if [ "$SOLO" = "1" ]; then
+  REQUIRE_CODE_OWNER_REVIEWS="false"
+  REQUIRED_APPROVING_REVIEW_COUNT=0
+  REVIEW_MODE="solo (CI gate only, no code owner review)"
+else
+  REQUIRE_CODE_OWNER_REVIEWS="true"
+  REQUIRED_APPROVING_REVIEW_COUNT=1
+  REVIEW_MODE="org (Guardian code owner review required)"
+fi
 
 echo "===> Branch Protection Setup"
 echo "   Repo   : $REPO"
 echo "   Branch : $BRANCH"
+echo "   Mode   : $REVIEW_MODE"
 echo "   Dry run: $([ "$DRY_RUN" = "1" ] && echo "YES" || echo "NO")"
 echo ""
 
@@ -82,8 +102,8 @@ json_payload=$(cat <<EOF
   "enforce_admins": true,
   "required_pull_request_reviews": {
     "dismiss_stale_reviews": true,
-    "require_code_owner_reviews": true,
-    "required_approving_review_count": 1,
+    "require_code_owner_reviews": ${REQUIRE_CODE_OWNER_REVIEWS},
+    "required_approving_review_count": ${REQUIRED_APPROVING_REVIEW_COUNT},
     "require_last_push_approval": false
   },
   "restrictions": null,
@@ -131,8 +151,13 @@ echo ""
 echo "===> Done. Ringkasan aturan:"
 echo "   - Required status checks: ${#REQUIRED_CONTEXTS[@]} contexts (CI hard gate)"
 echo "   - Strict (require branch up-to-date): YES"
-echo "   - Code owner review required: YES"
-echo "   - Min approving reviews: 1"
+if [ "$SOLO" = "1" ]; then
+  echo "   - Code owner review required: NO (SOLO mode)"
+  echo "   - Min approving reviews: 0"
+else
+  echo "   - Code owner review required: YES"
+  echo "   - Min approving reviews: 1"
+fi
 echo "   - Linear history: YES (no merge commits)"
 echo "   - Force push: DISABLED"
 echo "   - Branch delete: DISABLED"
@@ -141,5 +166,9 @@ echo "   - Conversation resolution required: YES"
 echo ""
 echo "Catatan:"
 echo "   - CodeRabbit (AI review) berjalan via GitHub App, otomatis review tiap PR"
-echo "   - Guardian tetap wajib approve (code owner review)"
-echo "   - Self-merge DILARANG (require_code_owner_reviews + approving_review_count=1)"
+if [ "$SOLO" = "1" ]; then
+  echo "   - SOLO mode: merge setelah CI lulus (tanpa Guardian approval)"
+else
+  echo "   - Guardian tetap wajib approve (code owner review)"
+  echo "   - Self-merge DILARANG (require_code_owner_reviews + approving_review_count=1)"
+fi

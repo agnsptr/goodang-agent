@@ -142,9 +142,5 @@ knowledge_base:
     enabled: true
     filePatterns:
       - "docs/rules/**/*.md"
-      - files: "docs/rules/**/*.md"
-        applyTo: "**/*.py"
-      - files:
-          - "docs/0. GOODANG_CONTRACT.md"
-          - "docs/12. GOODANG_ADR.md"
-        applyTo: "**/*.py"
+      - "docs/0. GOODANG_CONTRACT.md"
+      - "docs/12. GOODANG_ADR.md"
