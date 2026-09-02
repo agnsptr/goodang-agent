@@ -146,7 +146,7 @@ Buka URL yang muncul di terminal (biasanya `http://localhost:8000`).
 ```powershell
 cd docker
 copy .env.example .env
-notepad .env   # set TEMPORAL_DB_PASSWORD and SUPABASE_SERVICE_ROLE_KEY (worker only)
+notepad .env   # set TEMPORAL_DB_PASSWORD, SUPABASE_SERVICE_ROLE_KEY, TELEGRAM_BOT_TOKEN
 docker compose -f docker-compose.fase1.yml --profile temporal-stack config
 docker compose -f docker-compose.fase1.yml --profile temporal-stack up -d
 ```

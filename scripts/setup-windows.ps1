@@ -167,7 +167,7 @@ $DockerEnv = Join-Path $DockerDir ".env"
 if ((Test-Path $DockerEnvExample) -and -not (Test-Path $DockerEnv)) {
     Copy-Item $DockerEnvExample $DockerEnv
     Write-Ok "Created docker/.env from docker/.env.example"
-    Write-Warn "Edit docker/.env: set SUPABASE_SERVICE_ROLE_KEY before starting worker stack"
+    Write-Warn "Edit docker/.env: set SUPABASE_SERVICE_ROLE_KEY and TELEGRAM_BOT_TOKEN before starting worker stack"
 } elseif (-not (Test-Path $DockerEnvExample)) {
     Write-Warn "docker/.env.example not found - set worker credentials manually for Docker"
 }
@@ -183,10 +183,11 @@ if (-not $SkipDocker) {
                 @"
 TEMPORAL_DB_USER=temporal
 TEMPORAL_DB_PASSWORD=change-me-local-dev
-SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+SUPABASE_URL=https://your-project.supabase.co
+TELEGRAM_BOT_TOKEN=your-telegram-bot-token
 "@ | Set-Content -Path ".env" -Encoding UTF8
-                Write-Warn "Created minimal docker/.env - set SUPABASE_SERVICE_ROLE_KEY before up -d"
+                Write-Warn "Created minimal docker/.env - set SUPABASE_SERVICE_ROLE_KEY and TELEGRAM_BOT_TOKEN before up -d"
             }
             docker compose -f docker-compose.fase1.yml --profile temporal-stack config | Out-Null
             Assert-LastExitCode "docker compose config"
@@ -239,6 +240,13 @@ if (-not $SkipVerification) {
     } else {
         Write-Warn "bash not available - run drift checks from Git Bash or WSL"
     }
+
+    $RegistryScript = Join-Path $RepoRoot "scripts\check-tool-registry-sync.py"
+    if (Test-Path $RegistryScript) {
+        & $VenvPython $RegistryScript
+        Assert-LastExitCode "check-tool-registry-sync.py"
+        Write-Ok "tool registry sync check completed"
+    }
 }
 
 # --- Done ---
@@ -250,7 +258,7 @@ Next steps:
   2. Edit ADK secrets: notepad .env
      - GOOGLE_API_KEY, SUPABASE_URL, SUPABASE_ANON_KEY (no service_role here)
   3. Edit worker secrets: notepad docker\.env
-     - SUPABASE_SERVICE_ROLE_KEY for Temporal worker only
+     - SUPABASE_SERVICE_ROLE_KEY and TELEGRAM_BOT_TOKEN for Temporal worker only
   4. ADK dev UI:       adk web
   5. Full guide:       docs/setup/WINDOWS_SETUP.md
 
