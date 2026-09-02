@@ -129,8 +129,8 @@ TEMPORAL_NAMESPACE=goodang
 
 **Hard rules Goodang:**
 
-- `SUPABASE_SERVICE_ROLE_KEY` **hanya** di Temporal worker — **bukan** di proses ADK lokal
-- Class D tools (`create_transaction`, `deduct_stock`, `execute_payment`, `write_pos_transaction_log`) **tidak** didaftarkan di ADK
+- `SUPABASE_SERVICE_ROLE_KEY` **hanya** di `docker/.env` (Temporal worker) — **bukan** di root `.env` / proses ADK
+- Class D tools (`docs/0. GOODANG_CONTRACT.md` §3.4) **tidak** didaftarkan di ADK — hanya di Temporal worker
 
 ### 5. Jalankan ADK (dev UI)
 
@@ -146,7 +146,7 @@ Buka URL yang muncul di terminal (biasanya `http://localhost:8000`).
 ```powershell
 cd docker
 copy .env.example .env
-notepad .env   # set TEMPORAL_DB_PASSWORD
+notepad .env   # set TEMPORAL_DB_PASSWORD and SUPABASE_SERVICE_ROLE_KEY (worker only)
 docker compose -f docker-compose.fase1.yml --profile temporal-stack config
 docker compose -f docker-compose.fase1.yml --profile temporal-stack up -d
 ```

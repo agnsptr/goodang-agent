@@ -35,6 +35,12 @@ function Write-Warn([string]$Message) {
     Write-Host "WARN  $Message" -ForegroundColor Yellow
 }
 
+function Assert-LastExitCode([string]$Step) {
+    if ($LASTEXITCODE -ne 0) {
+        throw "$Step failed with exit code $LASTEXITCODE"
+    }
+}
+
 function Test-Command([string]$Name) {
     return $null -ne (Get-Command $Name -ErrorAction SilentlyContinue)
 }
@@ -61,7 +67,7 @@ function Get-PythonCommand {
 $RepoRoot = Resolve-Path (Join-Path $PSScriptRoot "..")
 Set-Location $RepoRoot
 
-Write-Step "Goodang Agent — Windows setup"
+Write-Step "Goodang Agent - Windows setup"
 Write-Host "Repository: $RepoRoot"
 
 # --- Prerequisites ---
@@ -83,7 +89,7 @@ if (-not $SkipDocker) {
     if (Test-Command "docker") {
         Write-Ok "docker $(docker --version)"
     } else {
-        Write-Warn "Docker not found — skipping Temporal stack. Install Docker Desktop or use -SkipDocker."
+        Write-Warn "Docker not found - skipping Temporal stack. Install Docker Desktop or use -SkipDocker."
         $SkipDocker = $true
     }
 }
@@ -94,6 +100,7 @@ Write-Step "Creating virtual environment (.venv)"
 $VenvPython = Join-Path $RepoRoot ".venv\Scripts\python.exe"
 if (-not (Test-Path $VenvPython)) {
     & $PythonCmd -m venv (Join-Path $RepoRoot ".venv")
+    Assert-LastExitCode "python -m venv"
     Write-Ok "Created .venv"
 } else {
     Write-Ok ".venv already exists"
@@ -101,6 +108,7 @@ if (-not (Test-Path $VenvPython)) {
 
 $VenvPip = Join-Path $RepoRoot ".venv\Scripts\pip.exe"
 & $VenvPython -m pip install --upgrade pip --quiet
+Assert-LastExitCode "pip upgrade"
 Write-Ok "pip upgraded"
 
 # --- Dependencies ---
@@ -109,9 +117,10 @@ Write-Step "Installing Python dependencies"
 $PyProject = Join-Path $RepoRoot "pyproject.toml"
 if (Test-Path $PyProject) {
     & $VenvPip install -e ".[dev]"
+    Assert-LastExitCode "pip install -e .[dev]"
     Write-Ok "Installed editable package from pyproject.toml"
 } else {
-    Write-Warn "pyproject.toml not found — installing baseline packages"
+    Write-Warn "pyproject.toml not found - installing baseline packages"
     $Baseline = @(
         "fastapi>=0.110",
         "uvicorn[standard]>=0.27",
@@ -126,11 +135,13 @@ if (Test-Path $PyProject) {
         "mypy>=1.9"
     )
     & $VenvPip install @Baseline
+    Assert-LastExitCode "pip install baseline"
     Write-Ok "Baseline packages installed"
 }
 
 if (-not $SkipAdk) {
     & $VenvPip install "google-adk"
+    Assert-LastExitCode "pip install google-adk"
     Write-Ok "google-adk installed"
 } else {
     Write-Warn "Skipped google-adk (-SkipAdk)"
@@ -143,11 +154,11 @@ $EnvExample = Join-Path $RepoRoot ".env.example"
 $EnvFile = Join-Path $RepoRoot ".env"
 if ((Test-Path $EnvExample) -and -not (Test-Path $EnvFile)) {
     Copy-Item $EnvExample $EnvFile
-    Write-Ok "Created .env from .env.example — edit GOOGLE_API_KEY and Supabase keys"
+    Write-Ok "Created .env from .env.example - edit GOOGLE_API_KEY and SUPABASE_ANON_KEY"
 } elseif (Test-Path $EnvFile) {
     Write-Ok ".env already exists (not overwritten)"
 } else {
-    Write-Warn ".env.example missing — create .env manually"
+    Write-Warn ".env.example missing - create .env manually"
 }
 
 $DockerDir = Join-Path $RepoRoot "docker"
@@ -156,8 +167,9 @@ $DockerEnv = Join-Path $DockerDir ".env"
 if ((Test-Path $DockerEnvExample) -and -not (Test-Path $DockerEnv)) {
     Copy-Item $DockerEnvExample $DockerEnv
     Write-Ok "Created docker/.env from docker/.env.example"
+    Write-Warn "Edit docker/.env: set SUPABASE_SERVICE_ROLE_KEY before starting worker stack"
 } elseif (-not (Test-Path $DockerEnvExample)) {
-    Write-Warn "docker/.env.example not found — set TEMPORAL_DB_PASSWORD manually for Docker"
+    Write-Warn "docker/.env.example not found - set worker credentials manually for Docker"
 }
 
 # --- Docker Temporal (optional) ---
@@ -171,14 +183,15 @@ if (-not $SkipDocker) {
                 @"
 TEMPORAL_DB_USER=temporal
 TEMPORAL_DB_PASSWORD=change-me-local-dev
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 "@ | Set-Content -Path ".env" -Encoding UTF8
-                Write-Warn "Created minimal docker/.env with default password — change for shared machines"
+                Write-Warn "Created minimal docker/.env - set SUPABASE_SERVICE_ROLE_KEY before up -d"
             }
             docker compose -f docker-compose.fase1.yml --profile temporal-stack config | Out-Null
+            Assert-LastExitCode "docker compose config"
             Write-Ok "docker compose config validated"
             Write-Host "  Start stack: cd docker; docker compose -f docker-compose.fase1.yml --profile temporal-stack up -d"
-        } catch {
-            Write-Warn "Docker compose validation failed: $_"
         } finally {
             Pop-Location
         }
@@ -196,10 +209,11 @@ if (-not $SkipVerification) {
         $Pytest = Join-Path $RepoRoot ".venv\Scripts\pytest.exe"
         if (Test-Path $Pytest) {
             & $Pytest (Join-Path $TestsDir) -q
+            Assert-LastExitCode "pytest"
             Write-Ok "pytest completed"
         }
     } else {
-        Write-Warn "tests/ not found — skip pytest"
+        Write-Warn "tests/ not found - skip pytest"
     }
 
     $Ruff = Join-Path $RepoRoot ".venv\Scripts\ruff.exe"
@@ -208,9 +222,10 @@ if (-not $SkipVerification) {
         $PyFiles = Get-ChildItem -Path $AppDir -Recurse -Filter "*.py" -ErrorAction SilentlyContinue
         if ($PyFiles.Count -gt 0) {
             & $Ruff check $AppDir
+            Assert-LastExitCode "ruff check"
             Write-Ok "ruff check completed"
         } else {
-            Write-Warn "No .py files under app/ yet — skip ruff"
+            Write-Warn "No .py files under app/ yet - skip ruff"
         }
     }
 
@@ -218,10 +233,11 @@ if (-not $SkipVerification) {
         $DriftScript = Join-Path $RepoRoot "scripts\check-contract-drift.sh"
         if (Test-Path $DriftScript) {
             bash $DriftScript
+            Assert-LastExitCode "check-contract-drift.sh"
             Write-Ok "contract drift check completed"
         }
     } else {
-        Write-Warn "bash not available — run drift checks from Git Bash or WSL"
+        Write-Warn "bash not available - run drift checks from Git Bash or WSL"
     }
 }
 
@@ -231,14 +247,15 @@ Write-Host @"
 
 Next steps:
   1. Activate venv:    .\.venv\Scripts\Activate.ps1
-  2. Edit secrets:     notepad .env
-     - GOOGLE_API_KEY (Gemini / ADK)
-     - SUPABASE_URL, SUPABASE_ANON_KEY (ADK only — no service_role here)
-  3. ADK dev UI:       adk web
-  4. Full guide:       docs/setup/WINDOWS_SETUP.md
+  2. Edit ADK secrets: notepad .env
+     - GOOGLE_API_KEY, SUPABASE_URL, SUPABASE_ANON_KEY (no service_role here)
+  3. Edit worker secrets: notepad docker\.env
+     - SUPABASE_SERVICE_ROLE_KEY for Temporal worker only
+  4. ADK dev UI:       adk web
+  5. Full guide:       docs/setup/WINDOWS_SETUP.md
 
 Hard rules:
-  - Class D tools only in Temporal worker
+  - Class D tools (docs/0 section 3.4) only in Temporal worker
   - service_role key never in ADK process
   - Start here: docs/0. GOODANG_CONTRACT.md
 
