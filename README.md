@@ -174,6 +174,15 @@ goodang-agent/
 
 ---
 
+## Local setup
+
+| Platform | Guide |
+|----------|-------|
+| **Windows** | [`docs/setup/WINDOWS_SETUP.md`](docs/setup/WINDOWS_SETUP.md) — or run `.\scripts\setup-windows.ps1` |
+| macOS / Linux | See **Quick Start** below |
+
+---
+
 ## Quick Start (local)
 
 ```bash
