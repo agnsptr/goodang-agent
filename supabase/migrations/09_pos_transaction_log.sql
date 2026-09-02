@@ -7,7 +7,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 CREATE TABLE goodang.pos_transaction_log (
-  id                BIGSERIAL PRIMARY KEY,
+  id                BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   transaction_id    TEXT NOT NULL,
   transaction_date  TIMESTAMPTZ NOT NULL,
   outlet_code       TEXT NOT NULL,

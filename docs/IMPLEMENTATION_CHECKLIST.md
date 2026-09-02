@@ -82,4 +82,10 @@ bash evaluation/run_evals.sh
 
 ## Contract Change Protocol
 
-Any new state/tool/error code → update `docs/0` first (version bump in header) → run drift checks → sync mirrors → update `registry.yaml` / migrations → `contract:` commit.
+Any contract change (states, tools, activities, error codes, SOP rules, data rules, API contracts, payment policy, product model, or transaction workflow) must follow:
+
+1. Update `docs/0. GOODANG_CONTRACT.md` first and bump the version in its header
+2. Run `bash scripts/check-contract-drift.sh` and fix mirrors (`app/`, `knowledge/`, `evaluation/`)
+3. Update dependent specs (`docs/5`, `docs/14`, playbooks, ADRs) to match
+4. Update `app/tools/registry.yaml`, Pydantic schemas, and `supabase/migrations/` as applicable
+5. Commit with prefix `contract: <summary>` for contract-only changes, or include contract bump in the feature commit

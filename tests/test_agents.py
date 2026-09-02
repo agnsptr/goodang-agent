@@ -9,6 +9,25 @@ def test_validate_structured_command_confirm():
         {"command": "confirm_order", "order_id": "ORD-1", "confirmation_keyword": "ya"}
     )
     assert cmd["command"] == "confirm_order"
+    assert cmd["confirmation_keyword"] == "YA"
+
+
+def test_validate_structured_command_rejects_invalid_keyword():
+    with pytest.raises(CommandValidationError):
+        validate_structured_command(
+            {
+                "command": "confirm_order",
+                "order_id": "ORD-1",
+                "confirmation_keyword": "maybe",
+            }
+        )
+
+
+def test_validate_structured_command_rejects_non_string_command():
+    with pytest.raises(CommandValidationError):
+        validate_structured_command(
+            {"command": 123, "order_id": "ORD-1", "confirmation_keyword": "ya"}
+        )
 
 
 def test_validate_structured_command_rejects_extra_fields():

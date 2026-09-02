@@ -2,6 +2,8 @@
 from dataclasses import dataclass, field
 from typing import Any
 
+from app.schemas.commands import CANONICAL_CONFIRM_KEYWORDS
+
 WAITING_CONFIRMATION = "WAITING_CONFIRMATION"
 
 
@@ -17,9 +19,10 @@ class MockTemporalWorker:
         if update_name == "confirm_order":
             if state != WAITING_CONFIRMATION:
                 raise ValueError(f"CONFIRMATION_REQUIRED: state={state}")
-            keyword = args.get("confirmation_keyword") or args.get("keyword")
-            if not keyword:
-                raise ValueError("CONFIRMATION_INVALID: missing keyword")
+            raw = args.get("confirmation_keyword") or args.get("keyword") or ""
+            keyword = raw.strip().upper()
+            if keyword not in CANONICAL_CONFIRM_KEYWORDS:
+                raise ValueError("CONFIRMATION_INVALID: keyword not in canonical set")
             self.workflow_states[workflow_id] = "CONFIRMED"
             return "CONFIRMATION_ACCEPTED"
 

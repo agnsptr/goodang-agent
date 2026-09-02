@@ -13,7 +13,7 @@ class CommandValidationError(ValueError):
 def validate_structured_command(command: dict[str, Any]) -> dict[str, Any]:
     """Validate and normalize structured command — reject unknown fields."""
     cmd_type = command.get("command")
-    if not cmd_type or cmd_type not in COMMAND_MODELS:
+    if not isinstance(cmd_type, str) or not cmd_type or cmd_type not in COMMAND_MODELS:
         raise CommandValidationError(f"Unknown or missing command: {cmd_type!r}")
 
     try:
